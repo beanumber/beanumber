@@ -1,0 +1,26 @@
+Package: beanumber
+Title: What the Package Does (One Line, Title Case)
+Version: 0.0.0.9001
+Authors@R: 
+    person(given = "First",
+           family = "Last",
+           role = c("aut", "cre"),
+           email = "first.last@example.com",
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: What the package does (one paragraph).
+License: CC0
+Imports:
+    dplyr,
+    fs,
+    purrr,
+    realtR,
+    sf,
+    stringr,
+    usethis
+Remotes: abresler/realtR
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.0
+Depends: 
+    R (>= 2.10)
