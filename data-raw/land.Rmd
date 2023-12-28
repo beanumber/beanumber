@@ -1,0 +1,108 @@
+---
+title: "Land"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE}
+library(tidyverse)
+library(leaflet)
+library(beanumber)
+library(sf)
+library(units)
+```
+
+```{r}
+land <- read_listings(locations = c(
+  "ashfield, MA"
+))
+properties <- land %>%
+  mutate(acreage = areaLotSize / 43560) %>%
+  filter(acreage > 8 & acreage < 150)
+
+towns <- read_town_lots("(ashfield)", cleanup = FALSE)
+
+of_interest <- tribble(
+  ~name, ~MAP_PAR_ID,
+  "jh", "407 0 14.1",
+  "frank", "22-22-0",
+  "dyer", "10-0-101",
+  "hawley", "129/005.0-0000-0053.0",
+  "robin", "30A-075-001"
+)
+
+show <- towns %>%
+  right_join(of_interest, by = "MAP_PAR_ID") %>%
+  mutate(acreage = SHAPE_Area / 43560) %>%
+  mutate(acreage = set_units(st_area(geometry), "acres"))
+
+#of_interest <- towns %>%
+#  filter(MAP_PAR_ID == "10-0-101")
+
+highlight <- towns %>%
+  filter(!is.na(MAP_PAR_ID)) %>%
+  mutate(
+    acreage = SHAPE_Area / 43560,
+    acreage = set_units(st_area(geometry), "acres"),
+    label = paste(MAP_PAR_ID, "<br>", round(acreage, 2), "acres")
+  ) %>%
+  filter(acreage > set_units(47, "acres"), acreage < set_units(48, "acres"))
+```
+
+## Map
+
+```{r}
+leaflet() %>%
+  addProviderTiles(providers$OpenTopoMap) %>%
+#  addTiles() %>%
+  addPolygons(data = towns, weight = 0.5, popup = ~MAP_PAR_ID) %>%
+#  addPolygons(data = show, fillColor = "red", weight = 1, popup = ~MAP_PAR_ID) %>%
+  addPolygons(data = highlight, fillColor = "red", weight = 1, popup = ~label) %>%
+#  addMarkers(data = st_centroid(highlight), label = ~acreage) %>%
+  addMarkers(
+    data = properties,
+    popup = ~paste("<h3>", nameListing, "</h3></br>", scales::dollar(priceListing), "</br>", round(acreage, 2), "acres</br><a href='", urlListing, "'>Link</a><img src='", urlImage, "'>")
+  )
+```
+
+## Analysis
+
+```{r}
+properties <- land %>%
+  mutate(acreage = areaLotSize / 43560) %>%
+  filter(acreage > 8 & acreage < 50) %>%
+  filter(priceListing < 200000)
+
+mod <- lm(priceListing ~ acreage, data = properties)
+```
+
+```{r}
+ggplot(data = properties, aes(x = acreage, y = priceListing)) + 
+  geom_point() +
+  geom_smooth(method = "lm") + 
+  scale_y_continuous(labels = scales::dollar) + 
+  coord_trans(x = "log10", y = "log10")
+```
+
+## New York 
+
+```{r}
+apts <- read_listings(
+  locations = c("Greenpoint, NY"), property_type = "condo-townhome-row-home-co-op", price_min = 500000, price_max = 1000000
+)
+```
+
+```{r}
+leaflet() %>%
+  addProviderTiles(providers$OpenTopoMap) %>%
+#  addTiles() %>%
+  addMarkers(
+    data = apts,
+    popup = ~paste("<h3>", nameListing, "</h3></br>", scales::dollar(priceListing), "</br>", "<a href='", urlListing, "'>Link</a><img src='", urlImage, "'>")
+  )
+```
